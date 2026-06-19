@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JobStatus{
+  PENDING
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  RETRYING
+}
+
+enum WorkerStatus {
+  IDLE
+  BUSY
+  DEAD
+}
+
+model Job {
+
+  id String @id @default(uuid())
+  type String
+  payload Json
+  priority Int @default(0)
+  status JobStatus @default(PENDING)
+  attempts Int @default(0)
+  maxAttempts Int @default(3)
+  assignedWorker Worker? @relation(fields: [assignedWorkerId], references: [id])
+  assignedWorkerId String?
+  result Json?
+  errorMessage String?
+  createdAt DateTime @default(now())
+  startedAt DateTime?
+  completedAt DateTime?
+  updatedAt DateTime @updatedAt
+
+  logs ExecutionLog[]
+
+  @@index([status])
+  @@index([priority])
+}
+
+model Worker {
+
+id String @id @default(uuid())
+hostname String
+status WorkerStatus @default(IDLE)
+lastHeartbeatAt DateTime @default(now())
+registeredAt DateTime @default(now())
+
+jobs Job[]
+@@index ([status])
+
+}
+
+model ExecutionLog {
+  id String @id @default(uuid())
+  jobId String
+  job Job @relation(fields: [jobId], references: [id])
+  workerId String?
+  status JobStatus
+  message String?
+  timestamp DateTime @default(now())
+
+  @@index([jobId])
+}
